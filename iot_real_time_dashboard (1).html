@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Real-time Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen pb-10">
+
+    <header class="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                <h1 class="text-lg font-semibold tracking-wide text-white">IoT Real-time Monitoring</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="modeBtn" onclick="toggleMode()" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition">
+                    โหมด: จำลองข้อมูล (Simulated)
+                </button>
+                <button onclick="toggleConfigModal()" class="text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition">
+                    ⚙️ เชื่อมต่อ Firebase
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 pt-6 space-y-6">
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Temperature Card -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-sm font-medium text-gray-400">อุณหภูมิ (Temperature)</span>
+                    <span id="tempBadge" class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ปกติ</span>
+                </div>
+                <div class="flex items-baseline gap-1 my-1">
+                    <span id="tempVal" class="text-4xl font-bold tracking-tight text-amber-400">0.0</span>
+                    <span class="text-gray-400 text-lg">°C</span>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-800/80 flex justify-between text-xs text-gray-400">
+                    <div>Min: <span id="tempMin" class="text-gray-200">--</span></div>
+                    <div>Avg: <span id="tempAvg" class="text-gray-200">--</span></div>
+                    <div>Max: <span id="tempMax" class="text-gray-200">--</span></div>
+                </div>
+            </div>
+
+            <!-- Humidity Card -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-sm font-medium text-gray-400">ความชื้น (Humidity)</span>
+                    <span id="humiBadge" class="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">ปกติ</span>
+                </div>
+                <div class="flex items-baseline gap-1 my-1">
+                    <span id="humiVal" class="text-4xl font-bold tracking-tight text-cyan-400">0</span>
+                    <span class="text-gray-400 text-lg">% RH</span>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-800/80 flex justify-between text-xs text-gray-400">
+                    <div>Min: <span id="humiMin" class="text-gray-200">--</span></div>
+                    <div>Avg: <span id="humiAvg" class="text-gray-200">--</span></div>
+                    <div>Max: <span id="humiMax" class="text-gray-200">--</span></div>
+                </div>
+            </div>
+
+            <!-- Light Card -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-sm font-medium text-gray-400">ความเข้มแสง (Light)</span>
+                    <span id="lightBadge" class="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">สว่าง</span>
+                </div>
+                <div class="flex items-baseline gap-1 my-1">
+                    <span id="lightVal" class="text-4xl font-bold tracking-tight text-yellow-400">0</span>
+                    <span class="text-gray-400 text-lg">Lux</span>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-800/80 flex justify-between text-xs text-gray-400">
+                    <div>Min: <span id="lightMin" class="text-gray-200">--</span></div>
+                    <div>Avg: <span id="lightAvg" class="text-gray-200">--</span></div>
+                    <div>Max: <span id="lightMax" class="text-gray-200">--</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-semibold text-gray-200">แนวโน้มย้อนหลัง (Real-time Trends)</h2>
+                <span class="text-xs text-gray-500">อัปเดตอัตโนมัติ</span>
+            </div>
+            <div class="h-64 sm:h-80 w-full">
+                <canvas id="realtimeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-semibold text-gray-200">บันทึกข้อมูลล่าสุด (Data Log)</h2>
+                <span class="text-xs text-gray-500">แสดง 8 รายการล่าสุด</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-gray-300">
+                    <thead class="bg-gray-800/50 text-gray-400 uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3 rounded-l-lg">เวลา (Timestamp)</th>
+                            <th class="p-3">อุณหภูมิ (°C)</th>
+                            <th class="p-3">ความชื้น (%)</th>
+                            <th class="p-3 rounded-r-lg">แสง (Lux)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="divide-y divide-gray-800/60">
+                        <!-- Content inserted dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="configModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <h3 class="text-base font-semibold text-white">ตั้งค่าการเชื่อมต่อ Firebase</h3>
+            <p class="text-xs text-gray-400">ระบุ URL ของ Firebase Realtime Database และ Path ของข้อมูลเพื่อดึงข้อมูลจริง</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-300 block mb-1">Database URL</label>
+                    <input type="text" id="fbUrl" placeholder="https://your-db.firebaseio.com" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-300 block mb-1">Data Path</label>
+                    <input type="text" id="fbPath" value="/sensor" placeholder="/sensor" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="toggleConfigModal()" class="px-4 py-2 text-xs rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700">ยกเลิก</button>
+                <button onclick="saveFirebaseConfig()" class="px-4 py-2 text-xs rounded-lg bg-emerald-600 text-white hover:bg-emerald-500">บันทึก & เชื่อมต่อ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample lightweight initial dataset
+        let dataset = [
+            { timestamp: "10:00:00", temp: 28.5, humi: 62, light: 420 },
+            { timestamp: "10:00:05", temp: 28.7, humi: 61, light: 435 },
+            { timestamp: "10:00:10", temp: 29.0, humi: 60, light: 450 },
+            { timestamp: "10:00:15", temp: 29.2, humi: 59, light: 480 },
+            { timestamp: "10:00:20", temp: 29.1, humi: 60, light: 470 },
+            { timestamp: "10:00:25", temp: 28.9, humi: 62, light: 440 }
+        ];
+
+        let isLiveFirebase = false;
+        let firebaseConfig = { url: "", path: "/sensor" };
+        let timer = null;
+        let chart;
+
+        // Initialize Chart.js
+        function initChart() {
+            const ctx = document.getElementById('realtimeChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataset.map(d => d.timestamp),
+                    datasets: [
+                        { label: 'อุณหภูมิ (°C)', data: dataset.map(d => d.temp), borderColor: '#f59e0b', backgroundColor: '#f59e0b20', tension: 0.3, borderWidth: 2, pointRadius: 3 },
+                        { label: 'ความชื้น (%)', data: dataset.map(d => d.humi), borderColor: '#06b6d4', backgroundColor: '#06b6d420', tension: 0.3, borderWidth: 2, pointRadius: 3 },
+                        { label: 'แสง (Lux)', data: dataset.map(d => d.light), borderColor: '#eab308', backgroundColor: '#eab30820', tension: 0.3, borderWidth: 2, pointRadius: 3, yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#1f2937' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+                        y: { grid: { color: '#1f2937' }, ticks: { color: '#9ca3af', font: { size: 10 } }, position: 'left' },
+                        y1: { grid: { drawOnChartArea: false }, ticks: { color: '#9ca3af', font: { size: 10 } }, position: 'right' }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#e5e7eb', font: { family: 'Prompt', size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        function updateDashboard() {
+            if (dataset.length === 0) return;
+            const current = dataset[dataset.length - 1];
+
+            // Values
+            document.getElementById('tempVal').innerText = current.temp.toFixed(1);
+            document.getElementById('humiVal').innerText = Math.round(current.humi);
+            document.getElementById('lightVal').innerText = Math.round(current.light);
+
+            // Min, Avg, Max Calculations
+            const temps = dataset.map(d => d.temp);
+            const humis = dataset.map(d => d.humi);
+            const lights = dataset.map(d => d.light);
+
+            document.getElementById('tempMin').innerText = Math.min(...temps).toFixed(1);
+            document.getElementById('tempMax').innerText = Math.max(...temps).toFixed(1);
+            document.getElementById('tempAvg').innerText = (temps.reduce((a, b) => a + b, 0) / temps.length).toFixed(1);
+
+            document.getElementById('humiMin').innerText = Math.min(...humis);
+            document.getElementById('humiMax').innerText = Math.max(...humis);
+            document.getElementById('humiAvg').innerText = Math.round(humis.reduce((a, b) => a + b, 0) / humis.length);
+
+            document.getElementById('lightMin').innerText = Math.min(...lights);
+            document.getElementById('lightMax').innerText = Math.max(...lights);
+            document.getElementById('lightAvg').innerText = Math.round(lights.reduce((a, b) => a + b, 0) / lights.length);
+
+            // Chart Update
+            chart.data.labels = dataset.map(d => d.timestamp);
+            chart.data.datasets[0].data = dataset.map(d => d.temp);
+            chart.data.datasets[1].data = dataset.map(d => d.humi);
+            chart.data.datasets[2].data = dataset.map(d => d.light);
+            chart.update('none');
+
+            // Table Update
+            const tableBody = document.getElementById('dataTable');
+            const recent = [...dataset].reverse().slice(0, 8);
+            tableBody.innerHTML = recent.map(row => `
+                <tr class="hover:bg-gray-800/30 transition">
+                    <td class="p-3 font-mono text-gray-400">${row.timestamp}</td>
+                    <td class="p-3 text-amber-400 font-medium">${row.temp.toFixed(1)}</td>
+                    <td class="p-3 text-cyan-400 font-medium">${row.humi}</td>
+                    <td class="p-3 text-yellow-400 font-medium">${row.light}</td>
+                </tr>
+            `).join('');
+        }
+
+        function generateSimulatedData() {
+            const last = dataset[dataset.length - 1];
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+
+            const newTemp = +(last.temp + (Math.random() * 0.8 - 0.4)).toFixed(1);
+            const newHumi = Math.min(100, Math.max(20, Math.round(last.humi + (Math.random() * 2 - 1))));
+            const newLight = Math.max(0, Math.round(last.light + (Math.random() * 20 - 10)));
+
+            dataset.push({ timestamp: timeStr, temp: newTemp, humi: newHumi, light: newLight });
+            if (dataset.length > 15) dataset.shift();
+
+            updateDashboard();
+        }
+
+        function fetchFirebaseData() {
+            if (!firebaseConfig.url) return;
+            const cleanUrl = firebaseConfig.url.replace(/\/$/, '');
+            const cleanPath = firebaseConfig.path.startsWith('/') ? firebaseConfig.path : '/' + firebaseConfig.path;
+            
+            fetch(`${cleanUrl}${cleanPath}.json`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data) {
+                        const now = new Date().toTimeString().split(' ')[0];
+                        const temp = parseFloat(data.temp || data.temperature || 0);
+                        const humi = parseFloat(data.humi || data.humidity || 0);
+                        const light = parseFloat(data.light || 0);
+
+                        dataset.push({ timestamp: now, temp, humi, light });
+                        if (dataset.length > 15) dataset.shift();
+                        updateDashboard();
+                    }
+                })
+                .catch(err => console.error("Firebase fetch error:", err));
+        }
+
+        function toggleMode() {
+            isLiveFirebase = !isLiveFirebase;
+            const btn = document.getElementById('modeBtn');
+            clearInterval(timer);
+
+            if (isLiveFirebase) {
+                if (!firebaseConfig.url) {
+                    toggleConfigModal();
+                    isLiveFirebase = false;
+                    return;
+                }
+                btn.innerText = "โหมด: Firebase Live";
+                btn.className = "text-xs px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 transition";
+                timer = setInterval(fetchFirebaseData, 3000);
+            } else {
+                btn.innerText = "โหมด: จำลองข้อมูล (Simulated)";
+                btn.className = "text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition";
+                timer = setInterval(generateSimulatedData, 3000);
+            }
+        }
+
+        function toggleConfigModal() {
+            document.getElementById('configModal').classList.toggle('hidden');
+        }
+
+        function saveFirebaseConfig() {
+            firebaseConfig.url = document.getElementById('fbUrl').value.trim();
+            firebaseConfig.path = document.getElementById('fbPath').value.trim() || "/sensor";
+            toggleConfigModal();
+            if (firebaseConfig.url && !isLiveFirebase) {
+                toggleMode();
+            }
+        }
+
+        // Start App
+        window.onload = function() {
+            initChart();
+            updateDashboard();
+            timer = setInterval(generateSimulatedData, 3000);
+        };
+    </script>
+</body>
+</html>
